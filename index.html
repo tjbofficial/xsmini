@@ -586,7 +586,7 @@
   });
   window.addEventListener('mouseup', () => {
     bpmDragging = false; blendActive = false; fxActive = false; widthActive = false;
-    if (padDragging) { padDragging = false; if (!held) fadeOut(() => audioCtx.suspend()); }
+    if (padDragging) { padDragging = false; if (!held) fadeOut(); }
   });
 
   function padPos(e) {
@@ -614,7 +614,7 @@
     updateFilters();
   }, { passive: false });
   padCanvas.addEventListener('touchend', () => {
-    padDragging = false; if (!held) fadeOut(() => audioCtx.suspend());
+    padDragging = false; if (!held) fadeOut();
   });
 
   overlay.addEventListener('click', () => {
