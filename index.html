@@ -171,6 +171,17 @@
       <div class="fader-thumb" id="blend-thumb"></div>
     </div>
   </div>
+  <div class="fader-row" id="fx-row">
+    <div class="fader-header">
+      <span class="fader-label">FX</span>
+      <span class="fader-value" id="fx-val">0%</span>
+    </div>
+    <div class="fader-track" id="fx-track">
+      <div class="fader-fill" id="fx-fill"></div>
+      <div class="fader-fill-right" id="fx-fill-right"></div>
+      <div class="fader-thumb" id="fx-thumb"></div>
+    </div>
+  </div>
   <div class="fader-row" id="width-row">
     <div class="fader-header">
       <span class="fader-label">WIDTH</span>
@@ -209,6 +220,12 @@
   const widthThumb     = document.getElementById('width-thumb');
   const widthVal       = document.getElementById('width-val');
 
+  const fxTrack     = document.getElementById('fx-track');
+  const fxFill      = document.getElementById('fx-fill');
+  const fxFillRight = document.getElementById('fx-fill-right');
+  const fxThumb     = document.getElementById('fx-thumb');
+  const fxVal       = document.getElementById('fx-val');
+
   // ── Canvas sizing — set pixel dimensions to match rendered CSS size ──────────
   // The canvas element fills the #wrap container via CSS. We read the actual
   // rendered width and set both canvas dimensions to that value (keeping it square).
@@ -225,7 +242,7 @@
   // ── State ─────────────────────────────────────────────────────────────────────
   let audioCtx, lpf, hpf, gainNode, lfoGain, lfoNode;
   let ready = false, px = 0.5, py = 0.5;
-  let bpm = 120, blendPct = 0, widthMs = 50, shape = 'sawtooth';
+  let bpm = 120, blendPct = 0, widthMs = 50, fxRatio = 0, shape = 'sawtooth';
   let held = false, padDragging = false, tapTimes = [];
 
   const clamp    = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -247,46 +264,125 @@
   `;
 
   // ── Audio ─────────────────────────────────────────────────────────────────────
+
+  // Generates a stereo impulse response for the reverb ConvolverNode.
+  // Decay time controls how long the tail lasts (5 seconds here).
+  function buildImpulse(ctx, decaySecs) {
+    const rate    = ctx.sampleRate;
+    const length  = rate * decaySecs;
+    const impulse = ctx.createBuffer(2, length, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+      for (let i = 0; i < length; i++) {
+        // Exponential decay envelope applied to white noise
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+      }
+    }
+    return impulse;
+  }
+
+  // Dotted eighth note duration in seconds at the current BPM
+  function dottedEighth() { return (60 / bpm) * 0.75; }
+
   async function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    const blob   = new Blob([workletSrc], { type: 'application/javascript' });
+    const blob    = new Blob([workletSrc], { type: 'application/javascript' });
     const blobURL = URL.createObjectURL(blob);
     await audioCtx.audioWorklet.addModule(blobURL);
     URL.revokeObjectURL(blobURL);
 
     const noiseNode = new AudioWorkletNode(audioCtx, 'noise-processor');
 
+    // Filters — left and right channels
     lpf = audioCtx.createBiquadFilter(); lpf.type = 'lowpass';  lpf.Q.value = 0.5;
     hpf = audioCtx.createBiquadFilter(); hpf.type = 'highpass'; hpf.Q.value = 0.5;
-
     const lpfR = audioCtx.createBiquadFilter(); lpfR.type = 'lowpass';  lpfR.Q.value = 0.5;
     const hpfR = audioCtx.createBiquadFilter(); hpfR.type = 'highpass'; hpfR.Q.value = 0.5;
     audioCtx._lpfR = lpfR; audioCtx._hpfR = hpfR;
 
-    const delay = audioCtx.createDelay(0.6);
-    delay.delayTime.value = widthMs / 1000;
-    audioCtx._delayNode = delay;
+    // Stereo width delay (existing)
+    const widthDelay = audioCtx.createDelay(0.6);
+    widthDelay.delayTime.value = widthMs / 1000;
+    audioCtx._delayNode = widthDelay;
 
+    // Main gain nodes (start at 0, fade in on engage)
     gainNode = audioCtx.createGain(); gainNode.gain.value = 0;
     const gainR = audioCtx.createGain(); gainR.gain.value = 0;
     audioCtx._gainR = gainR;
 
+    // LFO — left and right
     lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0;
     lfoNode = audioCtx.createOscillator();
     lfoNode.type = shape; lfoNode.frequency.value = bpm / 60; lfoNode.start();
     lfoNode.connect(lfoGain); lfoGain.connect(gainNode.gain);
-
     const lfoGainR = audioCtx.createGain(); lfoGainR.gain.value = 0;
     const lfoNodeR = audioCtx.createOscillator();
     lfoNodeR.type = shape; lfoNodeR.frequency.value = bpm / 60; lfoNodeR.start();
     lfoNodeR.connect(lfoGainR); lfoGainR.connect(gainR.gain);
     audioCtx._lfoGainR = lfoGainR; audioCtx._lfoNodeR = lfoNodeR;
 
+    // Stereo merger for main signal
     const merger = audioCtx.createChannelMerger(2);
     noiseNode.connect(lpf); lpf.connect(hpf); hpf.connect(gainNode); gainNode.connect(merger, 0, 0);
-    noiseNode.connect(delay); delay.connect(lpfR); lpfR.connect(hpfR); hpfR.connect(gainR); gainR.connect(merger, 0, 1);
-    merger.connect(audioCtx.destination);
+    noiseNode.connect(widthDelay); widthDelay.connect(lpfR); lpfR.connect(hpfR); hpfR.connect(gainR); gainR.connect(merger, 0, 1);
+
+    // ── Ping-pong delay ───────────────────────────────────────────────────────
+    // Two delay nodes cross-fed left-to-right to create the ping-pong effect.
+    // delayL receives the dry signal, delayR receives delayL's output, and
+    // both feed back into each other at a reduced level to sustain the bouncing.
+    const pingTime   = dottedEighth();
+    const delayL     = audioCtx.createDelay(2.0);
+    const delayR     = audioCtx.createDelay(2.0);
+    delayL.delayTime.value = pingTime;
+    delayR.delayTime.value = pingTime;
+    audioCtx._pingDelayL = delayL;
+    audioCtx._pingDelayR = delayR;
+
+    const feedbackL  = audioCtx.createGain(); feedbackL.gain.value = 0.35;
+    const feedbackR  = audioCtx.createGain(); feedbackR.gain.value = 0.35;
+    const pingDryGain  = audioCtx.createGain(); pingDryGain.gain.value  = 1.0;
+    const pingWetGainL = audioCtx.createGain(); pingWetGainL.gain.value = 0;
+    const pingWetGainR = audioCtx.createGain(); pingWetGainR.gain.value = 0;
+    audioCtx._pingDryGain  = pingDryGain;
+    audioCtx._pingWetGainL = pingWetGainL;
+    audioCtx._pingWetGainR = pingWetGainR;
+
+    // Cross-feed: delayL output -> feedbackR -> delayR, and vice versa
+    merger.connect(pingDryGain);
+    merger.connect(delayL);
+    delayL.connect(feedbackR); feedbackR.connect(delayR);
+    delayR.connect(feedbackL); feedbackL.connect(delayL);
+
+    // Ping-pong merger: dry + wet L on left, dry + wet R on right
+    const pingMerger = audioCtx.createChannelMerger(2);
+    pingDryGain.connect(pingMerger, 0, 0);
+    pingDryGain.connect(pingMerger, 0, 1);
+    delayL.connect(pingWetGainL); pingWetGainL.connect(pingMerger, 0, 0);
+    delayR.connect(pingWetGainR); pingWetGainR.connect(pingMerger, 0, 1);
+
+    // ── Reverb ────────────────────────────────────────────────────────────────
+    const convolver = audioCtx.createConvolver();
+    convolver.buffer = buildImpulse(audioCtx, 5);
+    const reverbWet = audioCtx.createGain(); reverbWet.gain.value = 0;
+    const reverbDry = audioCtx.createGain(); reverbDry.gain.value = 1;
+    audioCtx._reverbWet = reverbWet;
+    audioCtx._reverbDry = reverbDry;
+
+    pingMerger.connect(reverbDry);
+    pingMerger.connect(convolver); convolver.connect(reverbWet);
+
+    // ── Compressor — final node before destination ────────────────────────────
+    const compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.ratio.value     = 4;
+    compressor.attack.value    = 0.005;
+    compressor.release.value   = 0.15;
+    compressor.knee.value      = 6;
+
+    reverbDry.connect(compressor);
+    reverbWet.connect(compressor);
+    compressor.connect(audioCtx.destination);
 
     audioCtx.suspend();
     ready = true;
@@ -306,10 +402,37 @@
 
   function applyBlend() {
     if (!lfoGain) return;
-    const depth = (blendPct / 100) * 0.28;
+    const depth = (blendPct / 100) * 0.3;
     const t = audioCtx.currentTime;
     lfoGain.gain.setTargetAtTime(depth, t, 0.02);
     audioCtx._lfoGainR.gain.setTargetAtTime(depth, t, 0.02);
+  }
+
+  // applyFX — drives ping-pong delay (0-50%) then reverb (50-100%)
+  // 0%:   fully dry, no delay, no reverb
+  // 50%:  delay fully wet, dry present, no reverb
+  // 100%: delay+dry locked at 50% mix, reverb fully wet
+  function applyFX() {
+    if (!audioCtx._pingWetGainL) return;
+    const t = audioCtx.currentTime;
+
+    if (fxRatio <= 0.5) {
+      // Phase 1: fade in ping delay, dry stays at 1
+      const delayWet = fxRatio * 2; // 0 -> 1 over first half
+      audioCtx._pingWetGainL.gain.setTargetAtTime(delayWet * 0.5, t, 0.05);
+      audioCtx._pingWetGainR.gain.setTargetAtTime(delayWet * 0.5, t, 0.05);
+      audioCtx._pingDryGain.gain.setTargetAtTime(1.0, t, 0.05);
+      audioCtx._reverbWet.gain.setTargetAtTime(0, t, 0.05);
+      audioCtx._reverbDry.gain.setTargetAtTime(1.0, t, 0.05);
+    } else {
+      // Phase 2: delay locked, reverb fades in
+      const reverbWet = (fxRatio - 0.5) * 2; // 0 -> 1 over second half
+      audioCtx._pingWetGainL.gain.setTargetAtTime(0.5, t, 0.05);
+      audioCtx._pingWetGainR.gain.setTargetAtTime(0.5, t, 0.05);
+      audioCtx._pingDryGain.gain.setTargetAtTime(1.0, t, 0.05);
+      audioCtx._reverbWet.gain.setTargetAtTime(reverbWet, t, 0.05);
+      audioCtx._reverbDry.gain.setTargetAtTime(1.0 - reverbWet * 0.5, t, 0.05);
+    }
   }
 
   function fadeIn() {
@@ -342,8 +465,15 @@
     bpmInput.value = bpm;
     if (lfoNode) {
       const hz = bpm / 60;
-      lfoNode.frequency.setTargetAtTime(hz, audioCtx.currentTime, 0.02);
-      audioCtx._lfoNodeR.frequency.setTargetAtTime(hz, audioCtx.currentTime, 0.02);
+      const t  = audioCtx.currentTime;
+      lfoNode.frequency.setTargetAtTime(hz, t, 0.02);
+      audioCtx._lfoNodeR.frequency.setTargetAtTime(hz, t, 0.02);
+      // Keep ping delay locked to dotted eighth at new BPM
+      if (audioCtx._pingDelayL) {
+        const pt = dottedEighth();
+        audioCtx._pingDelayL.delayTime.setTargetAtTime(pt, t, 0.02);
+        audioCtx._pingDelayR.delayTime.setTargetAtTime(pt, t, 0.02);
+      }
     }
   }
 
@@ -442,15 +572,31 @@
       audioCtx._delayNode.delayTime.setTargetAtTime(widthMs / 1000, audioCtx.currentTime, 0.02);
   }
 
+  // FX fader — ping delay (0-50%) then reverb (50-100%)
+  function setFX(ratio) {
+    fxRatio = ratio;
+    setFaderUI(fxFill, fxFillRight, fxThumb, ratio);
+    // Display: 0-50% shows delay%, 51-100% shows reverb%
+    const display = ratio <= 0.5
+      ? Math.round(ratio * 200) + '%'
+      : Math.round((ratio - 0.5) * 200) + '%';
+    fxVal.textContent = display;
+    applyFX();
+  }
+
   // Initialise positions to match starting state values
   setFaderUI(blendFill, blendFillRight, blendThumb, blendPct / 100);
+  setFaderUI(fxFill, fxFillRight, fxThumb, fxRatio);
   setFaderUI(widthFill, widthFillRight, widthThumb, widthMs / 500);
 
-  let blendActive = false, widthActive = false;
+  let blendActive = false, fxActive = false, widthActive = false;
 
   // Mouse events
   blendTrack.addEventListener('mousedown', e => {
     blendActive = true; setBlend(trackRatio(blendTrack, e.clientX)); e.stopPropagation();
+  });
+  fxTrack.addEventListener('mousedown', e => {
+    fxActive = true; setFX(trackRatio(fxTrack, e.clientX)); e.stopPropagation();
   });
   widthTrack.addEventListener('mousedown', e => {
     widthActive = true; setWidth(trackRatio(widthTrack, e.clientX)); e.stopPropagation();
@@ -467,6 +613,16 @@
   }, { passive: false });
   blendTrack.addEventListener('touchend', () => { blendActive = false; });
 
+  fxTrack.addEventListener('touchstart', e => {
+    e.preventDefault(); fxActive = true;
+    setFX(trackRatio(fxTrack, e.touches[0].clientX));
+  }, { passive: false });
+  fxTrack.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!fxActive) return;
+    setFX(trackRatio(fxTrack, e.touches[0].clientX));
+  }, { passive: false });
+  fxTrack.addEventListener('touchend', () => { fxActive = false; });
+
   widthTrack.addEventListener('touchstart', e => {
     e.preventDefault(); widthActive = true;
     setWidth(trackRatio(widthTrack, e.touches[0].clientX));
@@ -481,12 +637,13 @@
   window.addEventListener('mousemove', e => {
     if (bpmDragging)  updateBPM(bpmStartVal + (bpmStartY - e.clientY));
     if (blendActive)  setBlend(trackRatio(blendTrack, e.clientX));
+    if (fxActive)     setFX(trackRatio(fxTrack, e.clientX));
     if (widthActive)  setWidth(trackRatio(widthTrack, e.clientX));
     if (padDragging)  padPos(e);
   });
 
   window.addEventListener('mouseup', () => {
-    bpmDragging = false; blendActive = false; widthActive = false;
+    bpmDragging = false; blendActive = false; fxActive = false; widthActive = false;
     if (padDragging) { padDragging = false; if (!held) fadeOut(() => audioCtx.suspend()); }
   });
 
@@ -506,7 +663,7 @@
     const t = e.touches[0], rb = padCanvas.getBoundingClientRect();
     px = clamp((t.clientX - rb.left) / rb.width, 0, 1);
     py = clamp(1 - (t.clientY - rb.top) / rb.height, 0, 1);
-    padDragging = true; fadeIn();
+    updateFilters(); padDragging = true; fadeIn();
   }, { passive: false });
   padCanvas.addEventListener('touchmove', e => {
     e.preventDefault(); if (!padDragging) return;
@@ -541,9 +698,6 @@
       padCtx.beginPath(); padCtx.moveTo(W*i/4, 0); padCtx.lineTo(W*i/4, H); padCtx.stroke();
       padCtx.beginPath(); padCtx.moveTo(0, H*i/4); padCtx.lineTo(W, H*i/4); padCtx.stroke();
     }
-
-    padCtx.fillStyle = 'rgba(255,255,255,0.18)'; padCtx.font = '10px monospace';
-    padCtx.fillText('HPF ↑', 6, 14); padCtx.fillText('HPF ↓', 6, H - 6);
 
     const pcx = px * W, pcy = (1 - py) * H;
     const active = ready && audioCtx?.state === 'running';
