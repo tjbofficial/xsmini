@@ -150,8 +150,8 @@
     <button id="reset-btn" class="hold">HOLD</button>
   </div>
   <div class="cell">
-    <span id="bpm-display">120</span>
-    <input id="bpm-input" type="number" min="20" max="300" value="120">
+    <span id="bpm-display">125</span>
+    <input id="bpm-input" type="number" min="20" max="300" value="125">
     <span class="cell-label">BPM</span>
   </div>
   <div class="cell">
@@ -243,7 +243,7 @@
   // ── State ─────────────────────────────────────────────────────────────────────
   let audioCtx, lpf, hpf, gainNode, lfoGain, lfoNode;
   let ready = false, px = 0.5, py = 0.5;
-  let bpm = 120, blendPct = 0, widthMs = 50, fxRatio = 0, shape = 'sawtooth';
+  let bpm = 125, blendPct = 0, widthMs = 50, fxRatio = 0, shape = 'sawtooth';
   let held = false, padDragging = false, tapTimes = [];
 
   const clamp    = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -312,26 +312,37 @@
     const gainR = audioCtx.createGain(); gainR.gain.value = 0;
     audioCtx._gainR = gainR;
 
-    // LFO — left and right
+    // LFO — drives the final chopper node after the compressor
     lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0;
     lfoNode = audioCtx.createOscillator();
     lfoNode.type = shape; lfoNode.frequency.value = bpm / 60; lfoNode.start();
-    lfoNode.connect(lfoGain); lfoGain.connect(gainNode.gain);
-    const lfoGainR = audioCtx.createGain(); lfoGainR.gain.value = 0;
-    const lfoNodeR = audioCtx.createOscillator();
-    lfoNodeR.type = shape; lfoNodeR.frequency.value = bpm / 60; lfoNodeR.start();
-    lfoNodeR.connect(lfoGainR); lfoGainR.connect(gainR.gain);
-    audioCtx._lfoGainR = lfoGainR; audioCtx._lfoNodeR = lfoNodeR;
+    // lfoGain connected to chopperNode.gain below, after compressor is created
+    audioCtx._lfoGain = lfoGain;
 
-    // Stereo merger for main signal
+    // ── Pre-gain tap — filtered noise before the gain/LFO envelope ─────────────
+    // FX (ping-pong delay + reverb) taps here so it runs independently of
+    // whether the pad or Hold is active. The main signal path still goes
+    // through gainNode/gainR which are controlled by the pad and Hold button.
+    const preGainL = audioCtx.createGain(); preGainL.gain.value = 0.3;
+    const preGainR = audioCtx.createGain(); preGainR.gain.value = 0.3;
+    noiseNode.connect(lpf); lpf.connect(hpf);
+    hpf.connect(gainNode);  // main signal path (pad-controlled)
+    hpf.connect(preGainL);  // FX tap — always live once audio is running
+    noiseNode.connect(widthDelay); widthDelay.connect(lpfR); lpfR.connect(hpfR);
+    hpfR.connect(gainR);    // main signal path (pad-controlled)
+    hpfR.connect(preGainR); // FX tap — always live
+
+    // Main signal merger (pad-controlled, silenced when pad/Hold inactive)
     const merger = audioCtx.createChannelMerger(2);
-    noiseNode.connect(lpf); lpf.connect(hpf); hpf.connect(gainNode); gainNode.connect(merger, 0, 0);
-    noiseNode.connect(widthDelay); widthDelay.connect(lpfR); lpfR.connect(hpfR); hpfR.connect(gainR); gainR.connect(merger, 0, 1);
+    gainNode.connect(merger, 0, 0);
+    gainR.connect(merger, 0, 1);
+
+    // FX signal merger (pre-gain, always running)
+    const fxSourceMerger = audioCtx.createChannelMerger(2);
+    preGainL.connect(fxSourceMerger, 0, 0);
+    preGainR.connect(fxSourceMerger, 0, 1);
 
     // ── Ping-pong delay ───────────────────────────────────────────────────────
-    // Two delay nodes cross-fed left-to-right to create the ping-pong effect.
-    // delayL receives the dry signal, delayR receives delayL's output, and
-    // both feed back into each other at a reduced level to sustain the bouncing.
     const pingTime   = dottedEighth();
     const delayL     = audioCtx.createDelay(2.0);
     const delayR     = audioCtx.createDelay(2.0);
@@ -340,8 +351,8 @@
     audioCtx._pingDelayL = delayL;
     audioCtx._pingDelayR = delayR;
 
-    const feedbackL  = audioCtx.createGain(); feedbackL.gain.value = 0.35;
-    const feedbackR  = audioCtx.createGain(); feedbackR.gain.value = 0.35;
+    const feedbackL    = audioCtx.createGain(); feedbackL.gain.value = 0.35;
+    const feedbackR    = audioCtx.createGain(); feedbackR.gain.value = 0.35;
     const pingDryGain  = audioCtx.createGain(); pingDryGain.gain.value  = 1.0;
     const pingWetGainL = audioCtx.createGain(); pingWetGainL.gain.value = 0;
     const pingWetGainR = audioCtx.createGain(); pingWetGainR.gain.value = 0;
@@ -349,13 +360,11 @@
     audioCtx._pingWetGainL = pingWetGainL;
     audioCtx._pingWetGainR = pingWetGainR;
 
-    // Cross-feed: delayL output -> feedbackR -> delayR, and vice versa
-    merger.connect(pingDryGain);
-    merger.connect(delayL);
+    fxSourceMerger.connect(pingDryGain);
+    fxSourceMerger.connect(delayL);
     delayL.connect(feedbackR); feedbackR.connect(delayR);
     delayR.connect(feedbackL); feedbackL.connect(delayL);
 
-    // Ping-pong merger: dry + wet L on left, dry + wet R on right
     const pingMerger = audioCtx.createChannelMerger(2);
     pingDryGain.connect(pingMerger, 0, 0);
     pingDryGain.connect(pingMerger, 0, 1);
@@ -373,7 +382,7 @@
     pingMerger.connect(reverbDry);
     pingMerger.connect(convolver); convolver.connect(reverbWet);
 
-    // ── Compressor — final node before destination ────────────────────────────
+    // ── Compressor ────────────────────────────────────────────────────────────
     const compressor = audioCtx.createDynamicsCompressor();
     compressor.threshold.value = -18;
     compressor.ratio.value     = 4;
@@ -381,9 +390,18 @@
     compressor.release.value   = 0.15;
     compressor.knee.value      = 6;
 
-    reverbDry.connect(compressor);
-    reverbWet.connect(compressor);
-    compressor.connect(audioCtx.destination);
+    merger.connect(compressor);      // main pad signal
+    reverbDry.connect(compressor);   // FX dry+delay
+    reverbWet.connect(compressor);   // FX reverb
+
+    // ── Chopper — LFO gates everything after the compressor ───────────────────
+    // This is the final node in the chain so the sawtooth/square envelope
+    // affects the full mixed output including FX tails.
+    const chopperNode = audioCtx.createGain(); chopperNode.gain.value = 0.3;
+    audioCtx._chopperNode = chopperNode;
+    lfoGain.connect(chopperNode.gain);
+    compressor.connect(chopperNode);
+    chopperNode.connect(audioCtx.destination);
 
     audioCtx.suspend();
     ready = true;
@@ -406,7 +424,6 @@
     const depth = (blendPct / 100) * 0.3;
     const t = audioCtx.currentTime;
     lfoGain.gain.setTargetAtTime(depth, t, 0.02);
-    audioCtx._lfoGainR.gain.setTargetAtTime(depth, t, 0.02);
   }
 
   // applyFX — drives ping-pong delay (0-50%) then reverb (50-100%)
@@ -442,9 +459,12 @@
     audioCtx._gainR.gain.cancelScheduledValues(t);
     audioCtx.resume().then(() => {
       gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.003);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.025);
       audioCtx._gainR.gain.setValueAtTime(0, audioCtx.currentTime);
-      audioCtx._gainR.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.003);
+      audioCtx._gainR.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.025);
+      // Ensure chopper base gain is set so signal passes through
+      audioCtx._chopperNode.gain.cancelScheduledValues(audioCtx.currentTime);
+      audioCtx._chopperNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
     });
   }
 
@@ -468,7 +488,6 @@
       const hz = bpm / 60;
       const t  = audioCtx.currentTime;
       lfoNode.frequency.setTargetAtTime(hz, t, 0.02);
-      audioCtx._lfoNodeR.frequency.setTargetAtTime(hz, t, 0.02);
       // Keep ping delay locked to dotted eighth at new BPM
       if (audioCtx._pingDelayL) {
         const pt = dottedEighth();
@@ -478,7 +497,7 @@
     }
   }
 
-  let bpmDragging = false, bpmStartY = 0, bpmStartVal = 120;
+  let bpmDragging = false, bpmStartY = 0, bpmStartVal = 125;
   bpmDisplay.addEventListener('mousedown', e => {
     bpmDragging = true; bpmStartY = e.clientY; bpmStartVal = bpm; e.preventDefault();
   });
@@ -519,7 +538,7 @@
   shapeBtn.addEventListener('click', () => {
     shape = shape === 'sawtooth' ? 'square' : 'sawtooth';
     shapeBtn.textContent = shape.toUpperCase();
-    if (lfoNode) { lfoNode.type = shape; audioCtx._lfoNodeR.type = shape; }
+    if (lfoNode) { lfoNode.type = shape; }
   });
 
   // HOLD / RESET
