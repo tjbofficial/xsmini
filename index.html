@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#991515">
+<link rel="manifest" href="manifest.json">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: #991515;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.07) 0px, rgba(0,0,0,0.07) 1px, transparent 1px, transparent 4px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 4px),
+      linear-gradient(45deg, #991515, #cc1a1a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; font-family: monospace; color: #aaa; user-select: none; padding: 20px 0;
+  }
+
+  /* ── Responsive container — 90vw, hard cap at 480px ── */
+  #ui {
+    width: 90vw; max-width: 480px;
+    display: flex; flex-direction: column; align-items: stretch;
+  }
+
+  #title {
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 18px; opacity: 0.75; color: rgba(255,255,255,0.25);
+    text-align: center;
+  }
+
+  /* ── XY Pad — square via padding-bottom trick ── */
+  #wrap { position: relative; width: 100%; padding-bottom: 100%; height: 0; }
+  #pad  { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 4px; cursor: crosshair; display: block; }
+  #overlay {
+    position: absolute; inset: 0; border-radius: 4px; cursor: pointer;
+    background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; letter-spacing: 2px; color: rgba(0,255,255,0.6);
+    border: 1px solid rgba(0,255,255,0.15);
+  }
+
+  /* ── Controls ── */
+  #controls {
+    margin-top: 18px; width: 100%; background: rgba(0,0,0,0.35);
+    border-radius: 6px; padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px; row-gap: 10px;
+  }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .cell-label { font-size: 9px; letter-spacing: 1px; opacity: 0.4; text-transform: uppercase; }
+
+  #bpm-display {
+    font-size: 14px; letter-spacing: 2px; color: cyan; cursor: ns-resize; line-height: 1;
+    height: 40px; display: flex; align-items: center; justify-content: center;
+  }
+  #bpm-input {
+    font-size: 14px; letter-spacing: 2px; color: cyan; line-height: 1;
+    background: none; border: none; border-bottom: 1px solid cyan;
+    width: 52px; text-align: center; font-family: monospace; outline: none; display: none;
+    -moz-appearance: textfield;
+  }
+  #bpm-input::-webkit-outer-spin-button,
+  #bpm-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  #tap-btn, #reset-btn, #shape-btn {
+    width: 100%; font-family: monospace; letter-spacing: 1px;
+    height: 40px; padding: 0; border-radius: 3px; cursor: pointer;
+  }
+  #tap-btn   { font-size: 10px; background: rgba(0,255,255,0.1);  border: 1px solid rgba(0,255,255,0.3);  color: cyan; }
+  #reset-btn { font-size: 10px; background: rgba(255,60,60,0.1);  border: 1px solid rgba(255,60,60,0.3);  color: #ff4444; }
+  #reset-btn.hold { background: rgba(0,255,255,0.1); border-color: rgba(0,255,255,0.3); color: cyan; }
+  #shape-btn { font-size: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); color: #aaa; }
+  #tap-btn:active   { background: rgba(0,255,255,0.25); }
+  #reset-btn:active { background: rgba(255,60,60,0.25); }
+  #shape-btn:active { background: rgba(255,255,255,0.1); }
+
+  /* ── Faders ── */
+  #faders {
+    margin-top: 10px; width: 100%; background: rgba(0,0,0,0.35);
+    border-radius: 6px; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .fader-row {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .fader-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .fader-label {
+    font-size: 9px; letter-spacing: 1px; opacity: 0.4; text-transform: uppercase;
+  }
+  .fader-value {
+    font-size: 9px; letter-spacing: 1px; color: cyan; opacity: 0.7;
+  }
+  .fader-track {
+    position: relative; width: 100%; height: 40px;
+    background: rgba(0,0,0,0.3); border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: ew-resize; touch-action: none;
+    overflow: hidden;
+  }
+  .fader-fill {
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: rgba(0,255,255,0.12); border-radius: 3px;
+    pointer-events: none;
+  }
+  .fader-fill-right {
+    position: absolute; top: 0; right: 0; height: 100%; width: 20px;
+    background: rgba(0,255,255,0.12); border-radius: 3px;
+    pointer-events: none;
+  }
+  .fader-thumb {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 28px; background: cyan; border-radius: 2px;
+    pointer-events: none;
+    box-shadow: 0 0 6px rgba(0,255,255,0.6);
+  }
+  /* tick marks at 0 and 100% */
+  .fader-track::before,
+  .fader-track::after {
+    content: ''; position: absolute; top: 50%; transform: translateY(-50%);
+    width: 1px; height: 10px; background: rgba(255,255,255,0.12);
+  }
+  .fader-track::before { left: 0; }
+  .fader-track::after  { right: 0; }
+
+  #footer {
+    width: 100%; text-align: center; margin-top: 8px;
+    font-size: 8px; letter-spacing: 1px; color: rgba(255,255,255,0.25);
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">
+<div id="title">Xander Sweep Mini</div>
+<div id="wrap">
+  <canvas id="pad" width="340" height="340"></canvas>
+  <div id="overlay">BRING THE NOISE</div>
+</div>
+
+<div id="controls">
+  <div class="cell">
+    <button id="tap-btn">TAP</button>
+  </div>
+  <div class="cell">
+    <button id="reset-btn" class="hold">HOLD</button>
+  </div>
+  <div class="cell">
+    <span id="bpm-display">120</span>
+    <input id="bpm-input" type="number" min="20" max="300" value="120">
+    <span class="cell-label">BPM</span>
+  </div>
+  <div class="cell">
+    <button id="shape-btn">SAWTOOTH</button>
+    <span class="cell-label">GATE</span>
+  </div>
+</div>
+
+<div id="faders">
+  <div class="fader-row" id="blend-row">
+    <div class="fader-header">
+      <span class="fader-label">BLEND</span>
+      <span class="fader-value" id="blend-val">0%</span>
+    </div>
+    <div class="fader-track" id="blend-track">
+      <div class="fader-fill" id="blend-fill"></div>
+      <div class="fader-fill-right" id="blend-fill-right"></div>
+      <div class="fader-thumb" id="blend-thumb"></div>
+    </div>
+  </div>
+  <div class="fader-row" id="width-row">
+    <div class="fader-header">
+      <span class="fader-label">WIDTH</span>
+      <span class="fader-value" id="width-val">50ms</span>
+    </div>
+    <div class="fader-track" id="width-track">
+      <div class="fader-fill" id="width-fill"></div>
+      <div class="fader-fill-right" id="width-fill-right"></div>
+      <div class="fader-thumb" id="width-thumb"></div>
+    </div>
+  </div>
+</div>
+
+<div id="footer">TJB 2026</div>
+</div>
+
+<script>
+  // ── DOM refs ─────────────────────────────────────────────────────────────────
+  const padCanvas  = document.getElementById('pad');
+  const padCtx     = padCanvas.getContext('2d');
+  const overlay    = document.getElementById('overlay');
+  const bpmDisplay = document.getElementById('bpm-display');
+  const bpmInput   = document.getElementById('bpm-input');
+  const tapBtn     = document.getElementById('tap-btn');
+  const resetBtn   = document.getElementById('reset-btn');
+  const shapeBtn   = document.getElementById('shape-btn');
+
+  const blendTrack     = document.getElementById('blend-track');
+  const blendFill      = document.getElementById('blend-fill');
+  const blendFillRight = document.getElementById('blend-fill-right');
+  const blendThumb     = document.getElementById('blend-thumb');
+  const blendVal       = document.getElementById('blend-val');
+  const widthTrack     = document.getElementById('width-track');
+  const widthFill      = document.getElementById('width-fill');
+  const widthFillRight = document.getElementById('width-fill-right');
+  const widthThumb     = document.getElementById('width-thumb');
+  const widthVal       = document.getElementById('width-val');
+
+  // ── Canvas sizing — set pixel dimensions to match rendered CSS size ──────────
+  // The canvas element fills the #wrap container via CSS. We read the actual
+  // rendered width and set both canvas dimensions to that value (keeping it square).
+  // This must run after layout, so we do it before the first draw.
+  function resizeCanvas() {
+    const size = padCanvas.offsetWidth;
+    padCanvas.width  = size;
+    padCanvas.height = size;
+  }
+  resizeCanvas();
+
+  // W and H are read from the canvas each draw frame (size can change on resize)
+
+  // ── State ─────────────────────────────────────────────────────────────────────
+  let audioCtx, lpf, hpf, gainNode, lfoGain, lfoNode;
+  let ready = false, px = 0.5, py = 0.5;
+  let bpm = 120, blendPct = 0, widthMs = 50, shape = 'sawtooth';
+  let held = false, padDragging = false, tapTimes = [];
+
+  const clamp    = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const diagToLP = d => 82 * Math.pow(268.3, d);
+  const diagToHP = d => 41 * Math.pow(268.3, d);
+
+  // ── AudioWorklet processor source ─────────────────────────────────────────────
+  const workletSrc = `
+    class NoiseProcessor extends AudioWorkletProcessor {
+      process(inputs, outputs) {
+        const out = outputs[0][0];
+        for (let i = 0; i < out.length; i++) {
+          out[i] = Math.random() * 2 - 1;
+        }
+        return true;
+      }
+    }
+    registerProcessor('noise-processor', NoiseProcessor);
+  `;
+
+  // ── Audio ─────────────────────────────────────────────────────────────────────
+  async function initAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const blob   = new Blob([workletSrc], { type: 'application/javascript' });
+    const blobURL = URL.createObjectURL(blob);
+    await audioCtx.audioWorklet.addModule(blobURL);
+    URL.revokeObjectURL(blobURL);
+
+    const noiseNode = new AudioWorkletNode(audioCtx, 'noise-processor');
+
+    lpf = audioCtx.createBiquadFilter(); lpf.type = 'lowpass';  lpf.Q.value = 0.5;
+    hpf = audioCtx.createBiquadFilter(); hpf.type = 'highpass'; hpf.Q.value = 0.5;
+
+    const lpfR = audioCtx.createBiquadFilter(); lpfR.type = 'lowpass';  lpfR.Q.value = 0.5;
+    const hpfR = audioCtx.createBiquadFilter(); hpfR.type = 'highpass'; hpfR.Q.value = 0.5;
+    audioCtx._lpfR = lpfR; audioCtx._hpfR = hpfR;
+
+    const delay = audioCtx.createDelay(0.6);
+    delay.delayTime.value = widthMs / 1000;
+    audioCtx._delayNode = delay;
+
+    gainNode = audioCtx.createGain(); gainNode.gain.value = 0;
+    const gainR = audioCtx.createGain(); gainR.gain.value = 0;
+    audioCtx._gainR = gainR;
+
+    lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0;
+    lfoNode = audioCtx.createOscillator();
+    lfoNode.type = shape; lfoNode.frequency.value = bpm / 60; lfoNode.start();
+    lfoNode.connect(lfoGain); lfoGain.connect(gainNode.gain);
+
+    const lfoGainR = audioCtx.createGain(); lfoGainR.gain.value = 0;
+    const lfoNodeR = audioCtx.createOscillator();
+    lfoNodeR.type = shape; lfoNodeR.frequency.value = bpm / 60; lfoNodeR.start();
+    lfoNodeR.connect(lfoGainR); lfoGainR.connect(gainR.gain);
+    audioCtx._lfoGainR = lfoGainR; audioCtx._lfoNodeR = lfoNodeR;
+
+    const merger = audioCtx.createChannelMerger(2);
+    noiseNode.connect(lpf); lpf.connect(hpf); hpf.connect(gainNode); gainNode.connect(merger, 0, 0);
+    noiseNode.connect(delay); delay.connect(lpfR); lpfR.connect(hpfR); hpfR.connect(gainR); gainR.connect(merger, 0, 1);
+    merger.connect(audioCtx.destination);
+
+    audioCtx.suspend();
+    ready = true;
+  }
+
+  function updateFilters() {
+    const d = (px + py) / 2;
+    let lp  = clamp(diagToLP(d), 82, 22000);
+    let hp  = clamp(diagToHP(d), 41, 11000);
+    hp = Math.max(Math.min(hp, lp * 0.9), 41);
+    const t = audioCtx.currentTime;
+    lpf.frequency.setTargetAtTime(lp, t, 0.02);
+    hpf.frequency.setTargetAtTime(hp, t, 0.02);
+    audioCtx._lpfR.frequency.setTargetAtTime(lp, t, 0.02);
+    audioCtx._hpfR.frequency.setTargetAtTime(hp, t, 0.02);
+  }
+
+  function applyBlend() {
+    if (!lfoGain) return;
+    const depth = (blendPct / 100) * 0.28;
+    const t = audioCtx.currentTime;
+    lfoGain.gain.setTargetAtTime(depth, t, 0.02);
+    audioCtx._lfoGainR.gain.setTargetAtTime(depth, t, 0.02);
+  }
+
+  function fadeIn() {
+    const t = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(t);
+    audioCtx._gainR.gain.cancelScheduledValues(t);
+    audioCtx.resume().then(() => {
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.003);
+      audioCtx._gainR.gain.setValueAtTime(0, audioCtx.currentTime);
+      audioCtx._gainR.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.003);
+    });
+  }
+
+  function fadeOut(cb) {
+    const t = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(t);
+    audioCtx._gainR.gain.cancelScheduledValues(t);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, t);
+    gainNode.gain.linearRampToValueAtTime(0, t + 0.003);
+    audioCtx._gainR.gain.setValueAtTime(audioCtx._gainR.gain.value, t);
+    audioCtx._gainR.gain.linearRampToValueAtTime(0, t + 0.003);
+    setTimeout(() => { if (cb) cb(); }, 5);
+  }
+
+  // ── BPM ───────────────────────────────────────────────────────────────────────
+  function updateBPM(val) {
+    bpm = clamp(Math.round(val), 20, 300);
+    bpmDisplay.textContent = bpm;
+    bpmInput.value = bpm;
+    if (lfoNode) {
+      const hz = bpm / 60;
+      lfoNode.frequency.setTargetAtTime(hz, audioCtx.currentTime, 0.02);
+      audioCtx._lfoNodeR.frequency.setTargetAtTime(hz, audioCtx.currentTime, 0.02);
+    }
+  }
+
+  let bpmDragging = false, bpmStartY = 0, bpmStartVal = 120;
+  bpmDisplay.addEventListener('mousedown', e => {
+    bpmDragging = true; bpmStartY = e.clientY; bpmStartVal = bpm; e.preventDefault();
+  });
+  bpmDisplay.addEventListener('wheel', e => {
+    e.preventDefault(); updateBPM(bpm - Math.sign(e.deltaY));
+  }, { passive: false });
+  bpmDisplay.addEventListener('dblclick', () => {
+    bpmDisplay.style.display = 'none';
+    bpmInput.style.display = 'inline-block';
+    bpmInput.focus(); bpmInput.select();
+  });
+  function commitBPM() {
+    const v = parseInt(bpmInput.value);
+    if (!isNaN(v)) updateBPM(v);
+    bpmInput.style.display = 'none';
+    bpmDisplay.style.display = 'inline-block';
+  }
+  bpmInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') commitBPM();
+    if (e.key === 'Escape') { bpmInput.style.display = 'none'; bpmDisplay.style.display = 'inline-block'; }
+  });
+  bpmInput.addEventListener('blur', commitBPM);
+
+  // TAP
+  tapBtn.addEventListener('click', () => {
+    const now = performance.now();
+    tapTimes.push(now);
+    if (tapTimes.length > 6) tapTimes.shift();
+    if (tapTimes.length >= 4) {
+      const gaps = [];
+      for (let i = 1; i < tapTimes.length; i++) gaps.push(tapTimes[i] - tapTimes[i-1]);
+      updateBPM(60000 / (gaps.reduce((a,b) => a+b,0) / gaps.length));
+    }
+    setTimeout(() => { if (performance.now() - tapTimes[tapTimes.length-1] > 3000) tapTimes = []; }, 3100);
+  });
+
+  // SHAPE
+  shapeBtn.addEventListener('click', () => {
+    shape = shape === 'sawtooth' ? 'square' : 'sawtooth';
+    shapeBtn.textContent = shape.toUpperCase();
+    if (lfoNode) { lfoNode.type = shape; audioCtx._lfoNodeR.type = shape; }
+  });
+
+  // HOLD / RESET
+  resetBtn.addEventListener('click', () => {
+    if (!ready) return;
+    if (!held) {
+      held = true; fadeIn();
+      resetBtn.textContent = 'RESET'; resetBtn.classList.remove('hold');
+    } else {
+      held = false; fadeOut(() => audioCtx.suspend());
+      resetBtn.textContent = 'HOLD'; resetBtn.classList.add('hold');
+    }
+  });
+
+  // Faders
+  const FADER_INSET = 20; // px reserved at each end before min/max
+
+  // Returns 0-1 from pointer X, with 20px dead zones at each extreme
+  function trackRatio(track, clientX) {
+    const rb     = track.getBoundingClientRect();
+    const travel = rb.width - FADER_INSET * 2;
+    return clamp((clientX - rb.left - FADER_INSET) / travel, 0, 1);
+  }
+
+
+  // Update fader thumb, left fill, and right dead-zone fill from a 0-1 ratio.
+  // Left fill grows from edge to thumb; right fill is a fixed 20px block
+  // anchored to the right edge, always visible to match the left dead zone.
+  function setFaderUI(fill, fillRight, thumb, ratio) {
+    fill.style.left   = '0';
+    fill.style.width  = `calc(${FADER_INSET}px + ${ratio} * (100% - ${FADER_INSET * 2}px))`;
+    thumb.style.left  = `calc(${FADER_INSET}px + ${ratio} * (100% - ${FADER_INSET * 2}px) - 1.5px)`;
+    // Right dead zone: only cyan when fader is at maximum
+    fillRight.style.background = ratio >= 1 ? 'rgba(0,255,255,0.12)' : 'transparent';
+  }
+
+  // BLEND fader — controls LFO depth, range 0–100%
+  function setBlend(ratio) {
+    blendPct = Math.round(ratio * 100);
+    setFaderUI(blendFill, blendFillRight, blendThumb, ratio);
+    blendVal.textContent = blendPct + '%';
+    applyBlend();
+  }
+
+  // WIDTH fader — controls right-channel delay, range 0–500ms
+  function setWidth(ratio) {
+    widthMs = Math.round(ratio * 500);
+    setFaderUI(widthFill, widthFillRight, widthThumb, ratio);
+    widthVal.textContent = widthMs + 'ms';
+    if (audioCtx?._delayNode)
+      audioCtx._delayNode.delayTime.setTargetAtTime(widthMs / 1000, audioCtx.currentTime, 0.02);
+  }
+
+  // Initialise positions to match starting state values
+  setFaderUI(blendFill, blendFillRight, blendThumb, blendPct / 100);
+  setFaderUI(widthFill, widthFillRight, widthThumb, widthMs / 500);
+
+  let blendActive = false, widthActive = false;
+
+  // Mouse events
+  blendTrack.addEventListener('mousedown', e => {
+    blendActive = true; setBlend(trackRatio(blendTrack, e.clientX)); e.stopPropagation();
+  });
+  widthTrack.addEventListener('mousedown', e => {
+    widthActive = true; setWidth(trackRatio(widthTrack, e.clientX)); e.stopPropagation();
+  });
+
+  // Touch events — each fader independently
+  blendTrack.addEventListener('touchstart', e => {
+    e.preventDefault(); blendActive = true;
+    setBlend(trackRatio(blendTrack, e.touches[0].clientX));
+  }, { passive: false });
+  blendTrack.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!blendActive) return;
+    setBlend(trackRatio(blendTrack, e.touches[0].clientX));
+  }, { passive: false });
+  blendTrack.addEventListener('touchend', () => { blendActive = false; });
+
+  widthTrack.addEventListener('touchstart', e => {
+    e.preventDefault(); widthActive = true;
+    setWidth(trackRatio(widthTrack, e.touches[0].clientX));
+  }, { passive: false });
+  widthTrack.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!widthActive) return;
+    setWidth(trackRatio(widthTrack, e.touches[0].clientX));
+  }, { passive: false });
+  widthTrack.addEventListener('touchend', () => { widthActive = false; });
+
+  // ── Global mouse events ───────────────────────────────────────────────────────
+  window.addEventListener('mousemove', e => {
+    if (bpmDragging)  updateBPM(bpmStartVal + (bpmStartY - e.clientY));
+    if (blendActive)  setBlend(trackRatio(blendTrack, e.clientX));
+    if (widthActive)  setWidth(trackRatio(widthTrack, e.clientX));
+    if (padDragging)  padPos(e);
+  });
+
+  window.addEventListener('mouseup', () => {
+    bpmDragging = false; blendActive = false; widthActive = false;
+    if (padDragging) { padDragging = false; if (!held) fadeOut(() => audioCtx.suspend()); }
+  });
+
+  // ── Pad ───────────────────────────────────────────────────────────────────────
+  function padPos(e) {
+    const rb = padCanvas.getBoundingClientRect();
+    px = clamp((e.clientX - rb.left) / rb.width, 0, 1);
+    py = clamp(1 - (e.clientY - rb.top) / rb.height, 0, 1);
+    updateFilters();
+  }
+
+  padCanvas.addEventListener('mousedown', e => {
+    if (!ready) return; padDragging = true; padPos(e); fadeIn();
+  });
+  padCanvas.addEventListener('touchstart', e => {
+    e.preventDefault(); if (!ready) return;
+    const t = e.touches[0], rb = padCanvas.getBoundingClientRect();
+    px = clamp((t.clientX - rb.left) / rb.width, 0, 1);
+    py = clamp(1 - (t.clientY - rb.top) / rb.height, 0, 1);
+    padDragging = true; fadeIn();
+  }, { passive: false });
+  padCanvas.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!padDragging) return;
+    const t = e.touches[0], rb = padCanvas.getBoundingClientRect();
+    px = clamp((t.clientX - rb.left) / rb.width, 0, 1);
+    py = clamp(1 - (t.clientY - rb.top) / rb.height, 0, 1);
+    updateFilters();
+  }, { passive: false });
+  padCanvas.addEventListener('touchend', () => {
+    padDragging = false; if (!held) fadeOut(() => audioCtx.suspend());
+  });
+
+  // ── Overlay ───────────────────────────────────────────────────────────────────
+  overlay.addEventListener('click', () => {
+    initAudio().then(() => {
+      overlay.style.display = 'none';
+    }).catch(err => {
+      console.error('Audio init failed:', err);
+      overlay.textContent = 'AUDIO ERROR — CHECK CONSOLE';
+    });
+  }, { once: true });
+
+  // ── Pad draw loop ─────────────────────────────────────────────────────────────
+  function drawPad() {
+    const W = padCanvas.width, H = padCanvas.height;
+    const bg = padCtx.createLinearGradient(0, H, W, 0);
+    bg.addColorStop(0, '#0a0a14'); bg.addColorStop(1, '#1a2a4a');
+    padCtx.fillStyle = bg; padCtx.fillRect(0, 0, W, H);
+
+    padCtx.strokeStyle = 'rgba(255,255,255,0.06)'; padCtx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      padCtx.beginPath(); padCtx.moveTo(W*i/4, 0); padCtx.lineTo(W*i/4, H); padCtx.stroke();
+      padCtx.beginPath(); padCtx.moveTo(0, H*i/4); padCtx.lineTo(W, H*i/4); padCtx.stroke();
+    }
+
+    padCtx.fillStyle = 'rgba(255,255,255,0.18)'; padCtx.font = '10px monospace';
+    padCtx.fillText('HPF ↑', 6, 14); padCtx.fillText('HPF ↓', 6, H - 6);
+
+    const pcx = px * W, pcy = (1 - py) * H;
+    const active = ready && audioCtx?.state === 'running';
+
+    padCtx.strokeStyle = `rgba(0,255,255,${active ? 0.15 : 0.04})`; padCtx.lineWidth = 1;
+    padCtx.beginPath(); padCtx.moveTo(pcx, 0); padCtx.lineTo(pcx, H); padCtx.stroke();
+    padCtx.beginPath(); padCtx.moveTo(0, pcy); padCtx.lineTo(W, pcy); padCtx.stroke();
+
+    const g = padCtx.createRadialGradient(pcx, pcy, 0, pcx, pcy, 40);
+    g.addColorStop(0, `rgba(0,255,255,${active ? 0.25 : 0.06})`);
+    g.addColorStop(1, 'rgba(0,255,255,0)');
+    padCtx.fillStyle = g; padCtx.beginPath(); padCtx.arc(pcx, pcy, 40, 0, Math.PI*2); padCtx.fill();
+
+    padCtx.strokeStyle = active ? 'rgba(0,255,255,1)' : 'rgba(0,255,255,0.3)'; padCtx.lineWidth = 1.5;
+    padCtx.beginPath(); padCtx.arc(pcx, pcy, 10, 0, Math.PI*2); padCtx.stroke();
+
+    padCtx.fillStyle = active ? 'white' : 'rgba(255,255,255,0.3)';
+    padCtx.beginPath(); padCtx.arc(pcx, pcy, 3, 0, Math.PI*2); padCtx.fill();
+
+    requestAnimationFrame(drawPad);
+  }
+  drawPad();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/xsmini/service-worker.js');
+  }
+</script>
+</body>
+</html>
