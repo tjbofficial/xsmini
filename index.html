@@ -19,15 +19,11 @@
     min-height: 100vh; font-family: monospace; color: #aaa; user-select: none; padding: 20px 0;
   }
 
-  #ui {
-    width: 90vw; max-width: 480px;
-    display: flex; flex-direction: column; align-items: stretch;
-  }
+  #ui { width: 90vw; max-width: 480px; display: flex; flex-direction: column; align-items: stretch; }
 
   #title {
     font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
-    margin-bottom: 18px; opacity: 0.75; color: rgba(255,255,255,0.25);
-    text-align: center;
+    margin-bottom: 18px; opacity: 0.75; color: rgba(255,255,255,0.25); text-align: center;
   }
 
   #wrap { position: relative; width: 100%; padding-bottom: 100%; height: 0; }
@@ -42,8 +38,7 @@
   #controls {
     margin-top: 18px; width: 100%; background: rgba(0,0,0,0.35);
     border-radius: 6px; padding: 14px 16px;
-    display: grid; grid-template-columns: 1fr 1fr;
-    column-gap: 10px; row-gap: 10px;
+    display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; row-gap: 10px;
   }
   .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .cell-label { font-size: 9px; letter-spacing: 1px; opacity: 0.4; text-transform: uppercase; }
@@ -56,8 +51,7 @@
     font-size: 14px; letter-spacing: 2px; color: cyan;
     height: 40px; width: 100%; display: none; align-items: center; justify-content: center;
     background: none; border: none; border-bottom: 1px solid cyan;
-    text-align: center; font-family: monospace; outline: none;
-    -moz-appearance: textfield;
+    text-align: center; font-family: monospace; outline: none; -moz-appearance: textfield;
   }
   #bpm-input::-webkit-outer-spin-button,
   #bpm-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -76,8 +70,7 @@
 
   #faders {
     margin-top: 10px; width: 100%; background: rgba(0,0,0,0.35);
-    border-radius: 6px; padding: 12px 16px;
-    display: flex; flex-direction: column; gap: 10px;
+    border-radius: 6px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;
   }
   .fader-row { display: flex; flex-direction: column; gap: 4px; }
   .fader-header { display: flex; justify-content: space-between; align-items: baseline; }
@@ -86,17 +79,10 @@
   .fader-track {
     position: relative; width: 100%; height: 40px;
     background: rgba(0,0,0,0.3); border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.08);
-    cursor: ew-resize; touch-action: none; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08); cursor: ew-resize; touch-action: none; overflow: hidden;
   }
-  .fader-fill {
-    position: absolute; top: 0; left: 0; height: 100%;
-    background: rgba(0,255,255,0.12); border-radius: 3px; pointer-events: none;
-  }
-  .fader-fill-right {
-    position: absolute; top: 0; right: 0; height: 100%; width: 20px;
-    background: transparent; border-radius: 3px; pointer-events: none;
-  }
+  .fader-fill { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0,255,255,0.12); border-radius: 3px; pointer-events: none; }
+  .fader-fill-right { position: absolute; top: 0; right: 0; height: 100%; width: 20px; background: transparent; border-radius: 3px; pointer-events: none; }
   .fader-thumb {
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 3px; height: 28px; background: cyan; border-radius: 2px;
@@ -109,10 +95,7 @@
   .fader-track::before { left: 0; }
   .fader-track::after  { right: 0; }
 
-  #footer {
-    width: 100%; text-align: center; margin-top: 8px;
-    font-size: 8px; letter-spacing: 1px; color: rgba(255,255,255,0.25);
-  }
+  #footer { width: 100%; text-align: center; margin-top: 8px; font-size: 8px; letter-spacing: 1px; color: rgba(255,255,255,0.25); }
 </style>
 </head>
 <body>
@@ -140,10 +123,7 @@
 
 <div id="faders">
   <div class="fader-row">
-    <div class="fader-header">
-      <span class="fader-label">BLEND</span>
-      <span class="fader-value" id="blend-val">0%</span>
-    </div>
+    <div class="fader-header"><span class="fader-label">BLEND</span><span class="fader-value" id="blend-val">0%</span></div>
     <div class="fader-track" id="blend-track">
       <div class="fader-fill" id="blend-fill"></div>
       <div class="fader-fill-right" id="blend-fill-right"></div>
@@ -151,10 +131,7 @@
     </div>
   </div>
   <div class="fader-row">
-    <div class="fader-header">
-      <span class="fader-label">FX</span>
-      <span class="fader-value" id="fx-val">0%</span>
-    </div>
+    <div class="fader-header"><span class="fader-label">FX</span><span class="fader-value" id="fx-val">0%</span></div>
     <div class="fader-track" id="fx-track">
       <div class="fader-fill" id="fx-fill"></div>
       <div class="fader-fill-right" id="fx-fill-right"></div>
@@ -162,10 +139,7 @@
     </div>
   </div>
   <div class="fader-row">
-    <div class="fader-header">
-      <span class="fader-label">WIDTH</span>
-      <span class="fader-value" id="width-val">50ms</span>
-    </div>
+    <div class="fader-header"><span class="fader-label">WIDTH</span><span class="fader-value" id="width-val">50ms</span></div>
     <div class="fader-track" id="width-track">
       <div class="fader-fill" id="width-fill"></div>
       <div class="fader-fill-right" id="width-fill-right"></div>
@@ -178,6 +152,7 @@
 </div>
 
 <script>
+  // ── DOM refs ──────────────────────────────────────────────────────────────────
   const padCanvas      = document.getElementById('pad');
   const padCtx         = padCanvas.getContext('2d');
   const overlay        = document.getElementById('overlay');
@@ -202,12 +177,14 @@
   const widthThumb     = document.getElementById('width-thumb');
   const widthVal       = document.getElementById('width-val');
 
+  // ── Canvas sizing ─────────────────────────────────────────────────────────────
   function resizeCanvas() {
     const size = padCanvas.offsetWidth;
     padCanvas.width = size; padCanvas.height = size;
   }
   resizeCanvas();
 
+  // ── State ─────────────────────────────────────────────────────────────────────
   let audioCtx, lpf, hpf, gainNode;
   let ready = false, px = 0.5, py = 0.5;
   let bpm = 125, blendPct = 0, widthMs = 50, fxRatio = 0, shape = 'sawtooth';
@@ -218,6 +195,7 @@
   const diagToHP     = d => 41 * Math.pow(268.3, d);
   const dottedEighth = () => (60 / bpm) * 0.75;
 
+  // ── AudioWorklet noise source ─────────────────────────────────────────────────
   const workletSrc = `
     class NoiseProcessor extends AudioWorkletProcessor {
       process(inputs, outputs) {
@@ -229,6 +207,7 @@
     registerProcessor('noise-processor', NoiseProcessor);
   `;
 
+  // ── Reverb impulse response ───────────────────────────────────────────────────
   function buildImpulse(ctx, secs) {
     const len     = ctx.sampleRate * secs;
     const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -240,6 +219,7 @@
     return impulse;
   }
 
+  // ── LFO management ───────────────────────────────────────────────────────────
   function startLFO() {
     stopLFO();
     const osc = audioCtx.createOscillator();
@@ -261,19 +241,10 @@
   // ── Audio initialisation ──────────────────────────────────────────────────────
   //
   // Signal chain:
-  //
-  //  noiseNode
-  //    widthDelay (R channel offset)
-  //    lpf/hpf L+R
-  //      gainNode/gainR  (pad on/off)
-  //        fxPreL/R  ← POST-GAIN tap: FX receives signal only while pad is active,
-  //                    but delay/reverb nodes output their tails independently into
-  //                    the compressor after gain closes → natural FX decay on release
-  //          ping-pong delay
-  //          reverb
-  //      compressor  ← dry + FX wet both feed here
-  //      masterGain + LFO chop
-  //      destination
+  //  noiseNode (L) + noiseNode → widthDelay (R) → stereoMerger
+  //    → lpf → hpf → gainNode (pad on/off)
+  //    → ping-pong delay + reverb (FX tails decay freely after pad release)
+  //    → compressor → masterGain (fixed 0.3, LFO chops on top) → destination
 
   async function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -285,40 +256,27 @@
 
     const noiseNode = new AudioWorkletNode(audioCtx, 'noise-processor');
 
+    // Width delay — offsets R channel to create stereo spread
     const widthDelay = audioCtx.createDelay(0.6);
     widthDelay.delayTime.value = widthMs / 1000;
     audioCtx._delayNode = widthDelay;
 
+    // Merge mono noise into stereo: L direct, R via delay
+    const stereoMerger = audioCtx.createChannelMerger(2);
+    noiseNode.connect(stereoMerger, 0, 0);
+    noiseNode.connect(widthDelay);
+    widthDelay.connect(stereoMerger, 0, 1);
+
+    // Filters on the merged stereo stream
     lpf = audioCtx.createBiquadFilter(); lpf.type = 'lowpass';  lpf.Q.value = 0.5;
     hpf = audioCtx.createBiquadFilter(); hpf.type = 'highpass'; hpf.Q.value = 0.5;
-    const lpfR = audioCtx.createBiquadFilter(); lpfR.type = 'lowpass';  lpfR.Q.value = 0.5;
-    const hpfR = audioCtx.createBiquadFilter(); hpfR.type = 'highpass'; hpfR.Q.value = 0.5;
-    audioCtx._lpfR = lpfR; audioCtx._hpfR = hpfR;
+    stereoMerger.connect(lpf); lpf.connect(hpf);
 
-    noiseNode.connect(lpf);        lpf.connect(hpf);
-    noiseNode.connect(widthDelay); widthDelay.connect(lpfR); lpfR.connect(hpfR);
-
+    // Single gain node — pad on/off; FX is downstream so tails decay after release
     gainNode = audioCtx.createGain(); gainNode.gain.value = 0;
-    const gainR = audioCtx.createGain(); gainR.gain.value = 0;
-    audioCtx._gainR = gainR;
-    hpf.connect(gainNode); hpfR.connect(gainR);
+    hpf.connect(gainNode);
 
-    const mainMerger = audioCtx.createChannelMerger(2);
-    gainNode.connect(mainMerger, 0, 0);
-    gainR.connect(mainMerger, 0, 1);
-
-    // FX pre-tap — AFTER gainNode/gainR (post-gain).
-    // FX only receives signal while the pad is active. The delay and reverb
-    // nodes continue to drain their buffers into the compressor after the gain
-    // closes, so tails are audible after pad release.
-    const fxPreL = audioCtx.createGain(); fxPreL.gain.value = 0.3;
-    const fxPreR = audioCtx.createGain(); fxPreR.gain.value = 0.3;
-    gainNode.connect(fxPreL); gainR.connect(fxPreR);
-
-    const fxMerger = audioCtx.createChannelMerger(2);
-    fxPreL.connect(fxMerger, 0, 0);
-    fxPreR.connect(fxMerger, 0, 1);
-
+    // Ping-pong delay
     const pingTime = dottedEighth();
     const delayL   = audioCtx.createDelay(2.0);
     const delayR   = audioCtx.createDelay(2.0);
@@ -329,7 +287,7 @@
 
     const fbL = audioCtx.createGain(); fbL.gain.value = 0.35;
     const fbR = audioCtx.createGain(); fbR.gain.value = 0.35;
-    fxMerger.connect(delayL);
+    gainNode.connect(delayL);
     delayL.connect(fbR); fbR.connect(delayR);
     delayR.connect(fbL); fbL.connect(delayL);
 
@@ -340,14 +298,15 @@
     audioCtx._pingWetL = pingWetL;
     audioCtx._pingWetR = pingWetR;
 
-    fxMerger.connect(pingDry);
+    gainNode.connect(pingDry);
     delayL.connect(pingWetL);
     delayR.connect(pingWetR);
 
     const pingMerger = audioCtx.createChannelMerger(2);
-    pingDry.connect(pingMerger, 0, 0);  pingDry.connect(pingMerger, 0, 1);
+    pingDry.connect(pingMerger,  0, 0); pingDry.connect(pingMerger,  0, 1);
     pingWetL.connect(pingMerger, 0, 0); pingWetR.connect(pingMerger, 0, 1);
 
+    // Reverb
     const convolver = audioCtx.createConvolver();
     convolver.buffer = buildImpulse(audioCtx, 5);
     const reverbWet = audioCtx.createGain(); reverbWet.gain.value = 0;
@@ -357,21 +316,17 @@
     pingMerger.connect(reverbDry);
     pingMerger.connect(convolver); convolver.connect(reverbWet);
 
+    // Compressor
     const comp = audioCtx.createDynamicsCompressor();
-    comp.threshold.value = -18; comp.ratio.value   = 4;
-    comp.attack.value    = 0.005; comp.release.value = 0.15; comp.knee.value = 6;
-    mainMerger.connect(comp);
+    comp.threshold.value = -18; comp.ratio.value = 4;
+    comp.attack.value = 0.005;  comp.release.value = 0.15; comp.knee.value = 6;
     reverbDry.connect(comp);
     reverbWet.connect(comp);
 
+    // Master gain — fixed at 0.3; LFO modulates on top via lfoGain
     const masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0;
+    masterGain.gain.value = 0.3;
     audioCtx._masterGain = masterGain;
-
-    const dc = audioCtx.createConstantSource();
-    dc.offset.value = 0.3; dc.start();
-    audioCtx._dc = dc;
-    dc.connect(masterGain.gain);
 
     const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0;
     audioCtx._lfoGain = lfoGain;
@@ -381,10 +336,10 @@
     comp.connect(masterGain);
     masterGain.connect(audioCtx.destination);
 
-    audioCtx.suspend();
     ready = true;
   }
 
+  // ── Filter update ─────────────────────────────────────────────────────────────
   function updateFilters() {
     const d = (px + py) / 2;
     let lp  = clamp(diagToLP(d), 82, 22000);
@@ -393,15 +348,15 @@
     const t = audioCtx.currentTime;
     lpf.frequency.setTargetAtTime(lp, t, 0.02);
     hpf.frequency.setTargetAtTime(hp, t, 0.02);
-    audioCtx._lpfR.frequency.setTargetAtTime(lp, t, 0.02);
-    audioCtx._hpfR.frequency.setTargetAtTime(hp, t, 0.02);
   }
 
+  // ── Blend ─────────────────────────────────────────────────────────────────────
   function applyBlend() {
     if (!audioCtx?._lfoGain) return;
     audioCtx._lfoGain.gain.setTargetAtTime((blendPct / 100) * 0.3, audioCtx.currentTime, 0.02);
   }
 
+  // ── FX ────────────────────────────────────────────────────────────────────────
   function applyFX() {
     if (!audioCtx?._pingWetL) return;
     const t = audioCtx.currentTime;
@@ -422,31 +377,26 @@
     }
   }
 
+  // ── Pad fade in/out ───────────────────────────────────────────────────────────
   function fadeIn() {
     audioCtx.resume().then(() => {
       const t = audioCtx.currentTime;
       gainNode.gain.cancelScheduledValues(t);
-      audioCtx._gainR.gain.cancelScheduledValues(t);
       gainNode.gain.setValueAtTime(0, t);
-      gainNode.gain.linearRampToValueAtTime(0.3, t + 0.025);
-      audioCtx._gainR.gain.setValueAtTime(0, t);
-      audioCtx._gainR.gain.linearRampToValueAtTime(0.3, t + 0.025);
+      gainNode.gain.linearRampToValueAtTime(1.0, t + 0.025);
       if (!held) startLFO();
     });
   }
 
-  function fadeOut(cb) {
+  function fadeOut() {
     const t = audioCtx.currentTime;
     gainNode.gain.cancelScheduledValues(t);
-    audioCtx._gainR.gain.cancelScheduledValues(t);
     gainNode.gain.setValueAtTime(gainNode.gain.value, t);
     gainNode.gain.linearRampToValueAtTime(0, t + 0.003);
-    audioCtx._gainR.gain.setValueAtTime(audioCtx._gainR.gain.value, t);
-    audioCtx._gainR.gain.linearRampToValueAtTime(0, t + 0.003);
     if (!held) stopLFO();
-    setTimeout(() => { if (cb) cb(); }, 5);
   }
 
+  // ── BPM ───────────────────────────────────────────────────────────────────────
   function updateBPM(val) {
     bpm = clamp(Math.round(val), 20, 300);
     bpmDisplay.textContent = bpm;
@@ -487,6 +437,7 @@
   });
   bpmInput.addEventListener('blur', commitBPM);
 
+  // TAP tempo
   tapBtn.addEventListener('click', () => {
     const now = performance.now();
     tapTimes.push(now);
@@ -499,12 +450,14 @@
     setTimeout(() => { if (performance.now() - tapTimes[tapTimes.length-1] > 3000) tapTimes = []; }, 3100);
   });
 
+  // GATE shape
   shapeBtn.addEventListener('click', () => {
     shape = shape === 'sawtooth' ? 'square' : 'sawtooth';
     shapeBtn.textContent = shape.toUpperCase();
     if (audioCtx?._lfoNode) audioCtx._lfoNode.type = shape;
   });
 
+  // HOLD / RESET
   resetBtn.addEventListener('click', () => {
     if (!ready) return;
     if (!held) {
@@ -515,11 +468,13 @@
     } else {
       held = false;
       stopLFO();
-      fadeOut(() => audioCtx.suspend());
+      fadeOut();
+      audioCtx.suspend();
       resetBtn.textContent = 'HOLD'; resetBtn.classList.add('hold');
     }
   });
 
+  // ── Faders ────────────────────────────────────────────────────────────────────
   const FADER_INSET = 20;
 
   function trackRatio(track, clientX) {
@@ -589,6 +544,7 @@
     if (padDragging) { padDragging = false; if (!held) fadeOut(); }
   });
 
+  // ── XY Pad ────────────────────────────────────────────────────────────────────
   function padPos(e) {
     const rb = padCanvas.getBoundingClientRect();
     px = clamp((e.clientX - rb.left) / rb.width,      0, 1);
@@ -617,6 +573,7 @@
     padDragging = false; if (!held) fadeOut();
   });
 
+  // ── Overlay ───────────────────────────────────────────────────────────────────
   overlay.addEventListener('click', () => {
     initAudio().then(() => {
       overlay.style.display = 'none';
@@ -626,6 +583,7 @@
     });
   }, { once: true });
 
+  // ── Pad draw loop ─────────────────────────────────────────────────────────────
   function drawPad() {
     const W = padCanvas.width, H = padCanvas.height;
     const bg = padCtx.createLinearGradient(0, H, W, 0);
@@ -639,7 +597,7 @@
     }
 
     const pcx = px * W, pcy = (1 - py) * H;
-    const active = ready && audioCtx?.state === 'running';
+    const active = ready && audioCtx?.state === 'running' && gainNode?.gain.value > 0.01;
 
     padCtx.strokeStyle = `rgba(0,255,255,${active ? 0.15 : 0.04})`; padCtx.lineWidth = 1;
     padCtx.beginPath(); padCtx.moveTo(pcx, 0); padCtx.lineTo(pcx, H); padCtx.stroke();
