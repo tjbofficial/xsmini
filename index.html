@@ -464,7 +464,7 @@
       held = true;
       startLFO();
       fadeIn();
-      resetBtn.textContent = 'RESET'; resetBtn.classList.remove('hold');
+      resetBtn.textContent = 'MUTE'; resetBtn.classList.remove('hold');
     } else {
       held = false;
       stopLFO();
@@ -500,7 +500,7 @@
   function setFX(ratio) {
     fxRatio = ratio;
     setFaderUI(fxFill, fxFillRight, fxThumb, ratio);
-    const pct = ratio <= 0.5 ? Math.round(ratio * 200) : Math.round((ratio - 0.5) * 200);
+    const pct = Math.round(ratio * 100);
     fxVal.textContent = pct + '%';
     applyFX();
   }
