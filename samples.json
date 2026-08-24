@@ -1,0 +1,10 @@
+{
+  "presets": {
+    "1": {
+      "A": { "file": "p01_A.wav", "image": "p01_A.jpg", "durationSec": 0 },
+      "B": { "file": "p01_B.wav", "image": "p01_B.jpg", "durationSec": 0 },
+      "C": { "file": "p01_C.wav", "image": "p01_C.jpg", "durationSec": 0 },
+      "D": { "file": "p01_D.wav", "image": "p01_D.jpg", "durationSec": 0 }
+    }
+  }
+}
