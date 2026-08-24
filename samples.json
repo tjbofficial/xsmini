@@ -1,10 +1,10 @@
 {
   "presets": {
     "1": {
-      "A": { "file": "p01_A.mp3", "image": "p01_A.jpg", "durationSec": 0 },
-      "B": { "file": "p01_B.mp3", "image": "p01_B.jpg", "durationSec": 0 },
-      "C": { "file": "p01_C.mp3", "image": "p01_C.jpg", "durationSec": 0 },
-      "D": { "file": "p01_D.mp3", "image": "p01_D.jpg", "durationSec": 0 }
+      "A": { "file": "p01_A.mp3", "image": "p01_A.png", "durationSec": 30 },
+      "B": { "file": "p01_B.mp3", "image": "p01_B.png", "durationSec": 10 },
+      "C": { "file": "p01_C.mp3", "image": "p01_C.png", "durationSec": 4 },
+      "D": { "file": "p01_D.mp3", "image": "p01_D.png", "durationSec": 6 }
     },
     "2": {
       "A": { "file": "p02_A.mp3", "image": "p02_A.jpg", "durationSec": 0 },
