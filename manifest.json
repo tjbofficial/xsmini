@@ -1,7 +1,7 @@
 {
-  "name": "Xander Sweep Mini",
+  "name": "Xander Sounds Mini",
   "short_name": "XS Mini",
-  "description": "Noise sweep instrument",
+  "description": "Noise Sweeps and Samples",
   "start_url": "/xsmini/",
   "scope": "/xsmini/",
   "display": "standalone",
