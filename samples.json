@@ -10,7 +10,6 @@
       "A": { "file": "p02_A.mp3", "image": "p02_A.png", "durationSec": 30 },
       "B": { "file": "p02_B.mp3", "image": "p02_B.png", "durationSec": 10 },
       "C": { "file": "p02_C.mp3", "image": "p02_C.png", "durationSec": 4 },
-      "D": { "file": "p02_D.mp3", "image": "p02_D.png", "durationSec": 6 }
     }
   }
 }
