@@ -1,15 +1,40 @@
 {
   "presets": {
     "1": {
-      "A": { "file": "p01_A.mp3", "image": "p01_A.png", "durationSec": 30 },
-      "B": { "file": "p01_B.mp3", "image": "p01_B.png", "durationSec": 10 },
-      "C": { "file": "p01_C.mp3", "image": "p01_C.png", "durationSec": 4 },
-      "D": { "file": "p01_D.mp3", "image": "p01_D.png", "durationSec": 6 }
+      "A": { "file": "p01_A.mp3", "image": "p01_A.png", "durationSec": 9 },
+      "B": { "file": "p01_B.mp3", "image": "p01_B.png", "durationSec": 2 },
+      "C": { "file": "p01_C.mp3", "image": "p01_C.png", "durationSec": 2 },
+      "D": { "file": "p01_D.mp3", "image": "p01_D.png", "durationSec": 2 }
     },
     "2": {
-      "A": { "file": "p02_A.mp3", "image": "p02_A.png", "durationSec": 30 },
-      "B": { "file": "p02_B.mp3", "image": "p02_B.png", "durationSec": 10 },
-      "C": { "file": "p02_C.mp3", "image": "p02_C.png", "durationSec": 4 }
+      "A": { "file": "p01_A.mp3", "image": "p01_A.png", "durationSec": 9 },
+      "B": { "file": "p02_B.mp3", "image": "p02_B.png", "durationSec": 11 },
+      "C": { "file": "p02_C.mp3", "image": "p02_C.png", "durationSec": 30 },
+      "D": { "file": "p02_D.mp3", "image": "p02_D.png", "durationSec": 10 }
+    },
+    "3": {
+      "A": { "file": "p03_A.mp3", "image": "p03_A.png", "durationSec": 62 },
+      "B": { "file": "p03_B.mp3", "image": "p03_B.png", "durationSec": 30 },
+      "C": { "file": "p03_C.mp3", "image": "p03_C.png", "durationSec": 35 },
+      "D": { "file": "p03_D.mp3", "image": "p03_D.png", "durationSec": 10 }
+    },
+    "4": {
+      "A": { "file": "p04_A.mp3", "image": "p04_A.png", "durationSec": 25 },
+      "B": { "file": "p03_B.mp3", "image": "p03_B.png", "durationSec": 30 },
+      "C": { "file": "p04_C.mp3", "image": "p04_C.png", "durationSec": 52 },
+      "D": { "file": "p04_D.mp3", "image": "p04_D.png", "durationSec": 45 }
+    },
+    "5": {
+      "A": { "file": "p05_A.mp3", "image": "p05_A.png", "durationSec": 55 },
+      "B": { "file": "p05_B.mp3", "image": "p05_B.png", "durationSec": 55 },
+      "C": { "file": "p05_C.mp3", "image": "p05_C.png", "durationSec": 32 },
+      "D": { "file": "p05_D.mp3", "image": "p05_D.png", "durationSec": 45 }
+    },
+    "6": {
+      "A": { "file": "p06_A.mp3", "image": "p06_A.png", "durationSec": 18 },
+      "B": { "file": "p06_B.mp3", "image": "p06_B.png", "durationSec": 18 },
+      "C": { "file": "p06_C.mp3", "image": "p06_C.png", "durationSec": 4 },
+      "D": { "file": "p06_D.mp3", "image": "p06_D.png", "durationSec": 4 }
     }
   }
 }
